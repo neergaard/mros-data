@@ -2,9 +2,23 @@
 
 This README.md is currently under revision!
 
-1. [Installation](#installation)
-2. [Usage](#usage)
-3. [Data preprocessing](#data-preprocessing)
+1. [Requirements](#requirements)
+2. [Installation](#installation)
+3. [Usage](#usage)
+4. [Data preprocessing](#data-preprocessing)
+
+## Requirements
+```
+- python==3.10
+- librosa==0.9.2
+- mne==1.2.1
+- numpy==1.23.3
+- scikit-learn==1.1.1
+- pytorch==1.13.0
+- pytorch-lightning==1.7.7
+- rich==12.6.0
+- pytest (for writing unit tests)
+```
 
 ## Installation
 The data pipeline and datamodule can be installed into your virtual environment by `cd`'ing into project folder and running `pip`:
