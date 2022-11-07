@@ -15,10 +15,10 @@ params = dict(
     events={"ar": "Arousal"},
     window_duration=600,  # seconds
     cache_data=True,
-    default_event_window_duration=[3],
+    default_event_window_duration=[3], # [10] for LM, [30] for SDB
     event_buffer_duration=3,
     factor_overlap=2,
-    fs=128,
+    fs=128,  # 64 for both LM and SDB
     matching_overlap=0.5,
     minimum_overlap=0.5,
     n_jobs=-1,
@@ -28,7 +28,7 @@ params = dict(
     # transform=MultitaperTransform(128, 0.5, 35.0, tw=8.0, normalize=True),
     transform=STFTTransform(
         fs=128, segment_size=int(4.0 * 128), step_size=int(0.125 * 128), nfft=1024, normalize=True
-    ),
+    ),  # Change 128 to matching sampling frequency
     scaling="robust",
 )
 
