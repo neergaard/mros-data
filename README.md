@@ -17,6 +17,7 @@ This README.md is currently under revision!
 - pytorch==1.13.0
 - pytorch-lightning==1.7.7
 - rich==12.6.0
+- ipympl
 - pytest (for writing unit tests)
 ```
 
