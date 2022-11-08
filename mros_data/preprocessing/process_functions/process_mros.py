@@ -211,7 +211,7 @@ def process_file(
             for chn in data.keys():
                 x_scaled = RobustScaler().fit_transform(data[chn].T).T
 
-                h5.create_dataset(f"data/unscaled/{chn.lower()}", data=data[chn].squeeze())
+                # h5.create_dataset(f"data/unscaled/{chn.lower()}", data=data[chn].squeeze())
                 h5.create_dataset(f"data/scaled/{chn.lower()}", data=x_scaled.squeeze())
                 h5.create_dataset(f"data/fs/original/{chn.lower()}", data=fs[chn])
                 h5.create_dataset(f"data/fs/new/{chn.lower()}", data=output_fs)
@@ -225,15 +225,16 @@ def process_file(
             epoched_scaled = mne.make_fixed_length_epochs(
                 raw_scaled, duration=duration, overlap=overlap, proj=False, verbose=False
             )
-            h5.create_dataset(
-                "data/unscaled",
-                data=epoched.get_data(),
-                chunks=(1, len(data.keys()), duration * output_fs),
-            )
+            # h5.create_dataset(
+            #     "data/unscaled",
+            #     data=epoched.get_data(),
+            #     chunks=(1, len(data.keys()), duration * output_fs),
+            # )
             h5.create_dataset(
                 "data/scaled",
                 data=epoched_scaled.get_data(),
                 chunks=(1, len(data.keys()), duration * output_fs),
+                dtype="f4",
             )
             # h5.create_dataset(f"data/fs/{chn.lower()}", data=fs[chn])
             h5.create_group("data/channel_idx")
