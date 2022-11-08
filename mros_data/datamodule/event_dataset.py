@@ -1,19 +1,17 @@
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
-from typing import Dict, List, Optional, Callable
+from typing import Callable, Dict, List, Optional
 
 import numpy as np
-from joblib import delayed
-from joblib import Memory
+from joblib import Memory, delayed
 from sklearn import preprocessing
 from torch.utils.data import Dataset
 
-from mros_data.datamodule.mixins import RecordDataset
-from mros_data.utils.logger import get_logger
+from mros_data.datamodule.mixins import PlottingMixin, RecordDataset
 from mros_data.utils.default_event_matching import match_events_localization_to_default_localizations
-from mros_data.utils.h5_utils import get_record_metadata
-from mros_data.utils.h5_utils import load_waveforms
+from mros_data.utils.h5_utils import get_record_metadata, load_waveforms
+from mros_data.utils.logger import get_logger
 from mros_data.utils.parallel_bar import ParallelExecutor
 
 logger = get_logger()
@@ -21,7 +19,31 @@ SCALERS = {"robust": preprocessing.RobustScaler(), "standard": preprocessing.Sta
 
 
 @dataclass
-class SleepEventDataset(RecordDataset, Dataset):
+class SleepEventDataset(RecordDataset, PlottingMixin, Dataset):
+    """
+
+    Args:
+        records (List[pathlib.Path])                : List of Path objects to .h5 files.
+        cache_data (bool)                           : Whether to cache data for fast loading (default True)
+        class_probabilities (Dict[str, float])       : Dictionary containing custom class probabilities (default None).
+        default_event_window_duration (List[int])   : List of default event window durations. Not used for DETR (default [3, 15, 30]).
+        event_buffer_duration (int)                 : Small buffer for window sampling in seconds (default 3).
+        events (Dict[str, str])                     : Dictionary containing event codes as keys and event names as values.
+                                                      Eg. {'ar': 'Arousal', 'lm': 'Leg movement', 'sdb': 'Sleep-disordered breathing'}
+        factor_overlap (int)                        : Overlap between successive default event windows. Not used for DETR (default 2)
+        fs (int)                                    : Sampling frequency, Hz.
+        localizations_default (np.ndarray)          : Numpy array containing default event windows. Can be calculated using the get_overlapping_default_events() function.
+        matching_overlap (float)                     : Threshold for matching events for default event windows (default 0.7)
+        n_jobs (int)                                : Number of workers to spin out for data loading. -1 means all workers (default -1).
+        n_records (int)                             : Total number of records to include (default None).
+        picks (List[str])                           : List of channel names to include
+        scaling (str)                               : Type of scaling to use ('robust', None, default 'robust').
+        transform (Callable)                        : A Callable object to transform signal data by STFT, Morlet transforms or multitaper spectrograms.
+                                                    : See the transforms/ directory for inspiration.
+        window_duration (int)                       : Duration of data segment in seconds.
+
+    """
+
     records: List[Path]
     events: Optional[Dict] = field(
         default_factory=lambda: ({"ar": "Arousal", "lm": "Leg movement", "sdb": "Sleep-disordered breathing"})
@@ -35,13 +57,11 @@ class SleepEventDataset(RecordDataset, Dataset):
     fs: int = 128
     localizations_default: np.ndarray = None
     matching_overlap: float = 0.5
-    minimum_overlap: float = 0.5
     n_jobs: int = 1
     n_records: int = None
     picks: List[str] = None
     transform: Callable = None
     scaling: str = "robust"
-    subset: str = "train"
 
     def __post_init__(self):
         self.cache_dir = Path("") / "data" / ".cache"
@@ -153,23 +173,7 @@ class SleepEventDataset(RecordDataset, Dataset):
         # Get valid stages
         stages = self.stages[record][window_start // self.fs : window_start // self.fs + self.window_duration]
 
-        # if self.subset == "train":
-        #     signal, events = self.extract_balanced_multiclass_data(
-        #         record=self.index_to_record_event[idx]["record"], index=self.index_to_record_event[idx]["max_index"],
-        #     )
-        # elif self.subset == "eval":
-        #     record = self.index_to_record_event[idx]["record"]
-        #     event = self.index_to_record_event[idx]["event"]
-        #     event_idx = self.index_to_record_event[idx]["idx"]
-        #     event_start, event_stop = (
-        #         self.event_data[record][event]["data"][event_idx, 0],
-        #         self.event_data[record][event]["data"][event_idx].sum(),
-        #     )
-        #     window_start = np.random.randint(
-        #         event_stop + self.event_buffer - self.window_size, event_start - self.event_buffer,
-        #     )
-        #     window_start = np.clip(window_start, 0, self.index_to_record_event[idx]["max_index"],)
-        #     signal, events = self.get_sample(record=record, index=window_start)
+        # Match the associated events with default event windows
         if events is not None:
             (localizations_target, classifications_target) = self.matching(events=events)
             localizations_target = localizations_target.squeeze(0)
@@ -177,6 +181,7 @@ class SleepEventDataset(RecordDataset, Dataset):
         else:
             (localizations_target, classifications_target) = (np.array([[], []]).T, np.array([]))
 
+        # Optionally transform the signal
         if self.transform is not None:
             signal = self.transform(signal, events)
 
