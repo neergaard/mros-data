@@ -10,6 +10,7 @@ def get_train_validation_test(
     percent_validation: Optional[float] = None,
     number_test: Optional[int] = None,
     number_validation: Optional[int] = None,
+    n_records: Optional[int] = None,
     seed=None,
 ) -> dict:
     if isinstance(h5_directory, list):
@@ -18,7 +19,7 @@ def get_train_validation_test(
         records = list(h5_directory.rglob("*.h5"))
     else:
         records = [x for x in os.listdir(h5_directory) if x != ".cache"]
-    records = sorted(records)
+    records = sorted(records)[:n_records]
     random.seed(seed)
     random.shuffle(records)
     if percent_test is None:
