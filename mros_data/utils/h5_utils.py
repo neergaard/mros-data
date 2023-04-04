@@ -87,10 +87,10 @@ def load_waveforms(filename: str, picks: list = None, scaled: bool = True, windo
             waveforms = h5["data"]["scaled"]
         else:
             waveforms = h5["data"]["unscaled"]
-        if isinstance(window, int):
+        if window:
             waveforms = waveforms[window]
             channel_idx = {k.lower(): v for k, v in h5["data"]["channel_idx"].attrs.items()}
-            waveform = np.stack([waveforms[channel_idx[chn]] for chn in picks])
+            waveform = np.stack([waveforms[:, channel_idx[chn.lower()]] for chn in picks], axis=1)
         else:
             waveform = np.stack([waveforms[w][window] for w in picks])
 
